@@ -1,0 +1,62 @@
+#!/usr/bin/env python
+#coding:utf-8
+import sys
+import time
+import subprocess
+
+KUBECTL = "kubectl"
+
+# OpenLDAP data storage path
+LDAP_BACKUP_PATH = "/data/backup/ldap"
+
+def date_local():
+    return time.strftime("%Y%m%d", time.localtime())
+
+def runCommand(command):
+    output = subprocess.check_output(command, shell=True)
+    return str(output)
+
+'''
+OpenLDAP数据备份
+'''
+def backup_ldap():
+    command = KUBECTL + " get pods -o custom-columns=NAME:.metadata.name"
+    pods = runCommand(command)
+
+    target_pod = None
+    for pod in pods.split():
+        if pod.find("ldap") > 0:
+            target_pod = pod
+
+    if target_pod is None:
+        print("[!] ldap pod not found !!!")
+        return False
+
+    backup_filename = "{}/k8s-ldap-{}.ldif".format(LDAP_BACKUP_PATH, date_local())
+    command = KUBECTL + " exec -it {} /usr/sbin/slapcat > {}".format(target_pod, backup_filename)
+
+    result = runCommand(command)
+    if result == "":
+        print("[*] ldap backup success")
+    else:
+        print("[!] Error: " + result)
+
+def help():
+    _help = '''
+USAGE:
+    kubebackup                    : list the namespaces in the current context
+    kubebackup ldap               : backup openldap data
+    kubebackup -h,--help          : show this message
+'''
+    print(_help)
+
+def main():
+    if len(sys.argv) > 3 or len(sys.argv) == 1:
+        help()
+    else:
+        if sys.argv[1] == "ldap":
+            return backup_ldap()
+        help()
+
+if __name__ == '__main__':
+    main()
