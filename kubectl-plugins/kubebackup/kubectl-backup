@@ -33,7 +33,7 @@ def backup_ldap():
         return False
 
     backup_filename = "{}/k8s-ldap-{}.ldif".format(LDAP_BACKUP_PATH, date_local())
-    command = KUBECTL + " exec -it {} /usr/sbin/slapcat > {}".format(target_pod, backup_filename)
+    command = KUBECTL + " exec -it {} -- /usr/sbin/slapcat > {}".format(target_pod, backup_filename)
 
     result = runCommand(command)
     if result == "":
